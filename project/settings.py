@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     #
     "drf_spectacular",
+    "corsheaders",
     #
     "apps.users",
     "apps.story",
@@ -53,6 +54,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.common.CommonMiddleware",
 ]
 
 ROOT_URLCONF = "project.urls"
@@ -155,6 +158,9 @@ REST_FRAMEWORK = {
 }
 
 CORS_ALLOWED_ORIGINS = [
+    "https://pavelyakomazov.gitlab.io",
+]
+CSRF_TRUSTED_ORIGINS = [
     "https://pavelyakomazov.gitlab.io",
 ]
 
