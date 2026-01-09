@@ -135,7 +135,7 @@ class StoryVideoDetailView(APIView):
                 open(f"{video.path}", "rb"),
                 filename=video.path,
                 content_type=video.content_type,
-                # as_attachment=True,
+                as_attachment=True,
             )
         else:
             return HttpResponseNotFound()
