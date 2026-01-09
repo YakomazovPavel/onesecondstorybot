@@ -159,9 +159,11 @@ REST_FRAMEWORK = {
 
 CORS_ALLOWED_ORIGINS = [
     "https://pavelyakomazov.gitlab.io",
+    "http://dev-py-71.corp.legres.ru:8000",
 ]
 CSRF_TRUSTED_ORIGINS = [
     "https://pavelyakomazov.gitlab.io",
+    "http://dev-py-71.corp.legres.ru:8000",
 ]
 
 SPECTACULAR_SETTINGS = {
