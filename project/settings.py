@@ -154,6 +154,10 @@ REST_FRAMEWORK = {
     # 'EXCEPTION_HANDLER': 'apps.utility.exception_handler.custom_exception_handler',
 }
 
+CORS_ALLOWED_ORIGINS = [
+    "https://pavelyakomazov.gitlab.io",
+]
+
 SPECTACULAR_SETTINGS = {
     "swagger": "2.0",
     "openapi": "3.0.0",
