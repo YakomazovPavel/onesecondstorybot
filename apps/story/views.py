@@ -1,3 +1,4 @@
+import os
 from django.http import FileResponse, HttpResponseNotFound
 from drf_spectacular.utils import (
     OpenApiParameter,
@@ -115,6 +116,9 @@ class DayStoryDetailView(APIView):
         responses={204: None},
     )
     def delete(self, request: Request, id: str) -> Response:
+        day_story: DayStory = DayStory.objects.filter(id=id, user=request.user).first()
+        os.system(f"rm {day_story.video.path}")
+        day_story.video.delete()
         return Response(True)
 
 
