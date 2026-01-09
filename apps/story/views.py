@@ -1,22 +1,20 @@
+from django.http import FileResponse, HttpResponseNotFound
 from drf_spectacular.utils import (
-    OpenApiExample,
     OpenApiParameter,
     OpenApiResponse,
     OpenApiTypes,
     extend_schema,
 )
 from rest_framework import status
-from rest_framework.exceptions import NotFound
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.parsers import FormParser, MultiPartParser
-from apps.story.serializers import RequestPostDayStorySerializer, DayStorySerializer
-from django.http import FileResponse, Http404, HttpResponse
-from project import settings
+
 from apps.story.models import DayStory, Video
+from apps.story.serializers import DayStorySerializer, RequestPostDayStorySerializer
+from project import settings
 from project.auth import ApiKeyAuthentication
-from django.http import HttpResponseNotFound
 
 
 class DayStoryView(APIView):
@@ -83,11 +81,11 @@ class DayStoryView(APIView):
         day = request.query_params.get("day")
 
         if year:
-            q = q.filter(datetime__year=year)
+            q = q.filter(year=year)
         if month:
-            q = q.filter(datetime__month=month)
+            q = q.filter(month=month)
         if day:
-            q = q.filter(datetime__day=day)
+            q = q.filter(day=day)
 
         return Response(
             DayStorySerializer(q, many=True).data,
@@ -134,7 +132,7 @@ class StoryVideoDetailView(APIView):
         video: Video = Video.objects.filter(id=id, user=request.user).first()
         if video:
             return FileResponse(
-                open(f"{settings.MEDIA_ROOT}/{video.path}", "rb"),
+                open(f"{video.path}", "rb"),
                 filename=video.path,
                 content_type=video.content_type,
                 as_attachment=True,

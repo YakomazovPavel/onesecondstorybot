@@ -6,6 +6,7 @@ from django.core.files.uploadedfile import InMemoryUploadedFile
 import uuid
 from pathlib import Path
 import ffmpeg
+import os
 
 
 class RequestPostDayStorySerializer(serializers.Serializer):
@@ -56,6 +57,8 @@ class RequestPostDayStorySerializer(serializers.Serializer):
         except ffmpeg.Error as e:
             print("FFmpeg Convert Error:", e)
             raise serializers.ValidationError("Ошибка конвертации файла")
+        finally:
+            os.system(f"rm {path_input}")
 
         try:
             (
@@ -67,6 +70,8 @@ class RequestPostDayStorySerializer(serializers.Serializer):
         except ffmpeg.Error as e:
             print("FFmpeg Cut Error:", e)
             raise serializers.ValidationError("Ошибка обрезания файла")
+        finally:
+            os.system(f"rm {path_output}")
 
         return DayStory.objects.create(
             year=self.validated_data.get("year"),
