@@ -37,8 +37,8 @@ class RequestPostDayStorySerializer(serializers.Serializer):
         video_id = str(uuid.uuid4())
 
         path_input = f"{settings.MEDIA_ROOT}/{video_id}{Path(file.name).suffixes[-1]}"
-        path_output = f"{settings.MEDIA_ROOT}/{video_id}.webm"
-        path_cut_output = f"{settings.MEDIA_ROOT}/{video_id}.cut.webm"
+        path_output = f"{settings.MEDIA_ROOT}/{video_id}.cnv.mp4"
+        path_cut_output = f"{settings.MEDIA_ROOT}/{video_id}.cut.mp4"
 
         video: Video = Video.objects.create(
             id=video_id,
