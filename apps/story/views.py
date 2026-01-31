@@ -14,7 +14,6 @@ from rest_framework.views import APIView
 
 from apps.story.models import DayStory, Video
 from apps.story.serializers import DayStorySerializer, RequestPostDayStorySerializer
-from project import settings
 from project.auth import ApiKeyAuthentication
 
 
@@ -56,16 +55,19 @@ class DayStoryView(APIView):
                 name="year",
                 description="Год",
                 type=int,
+                required=False,
             ),
             OpenApiParameter(
                 name="month",
                 description="Месяц",
                 type=int,
+                required=False,
             ),
             OpenApiParameter(
                 name="day",
                 description="День",
                 type=int,
+                required=False,
             ),
         ],
         responses={
@@ -75,6 +77,7 @@ class DayStoryView(APIView):
         },
     )
     def get(self, request: Request):
+        print("!get_day_story")
         q = DayStory.objects.filter(user=request.user)
 
         year = request.query_params.get("year")
