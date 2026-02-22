@@ -12,8 +12,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.story.models import DayStory, Video
-from apps.story.serializers import DayStorySerializer, RequestPostDayStorySerializer
+from apps.story.models import DayStory, Video, MonthStory
+from apps.story.serializers import (
+    DayStorySerializer,
+    RequestPostDayStorySerializer,
+    RequestPostMonthStorySerializer,
+)
 from project.auth import ApiKeyAuthentication
 
 
@@ -36,7 +40,8 @@ class DayStoryView(APIView):
     )
     def post(self, request: Request) -> Response:
         serializer = RequestPostDayStorySerializer(
-            data=request.data, context={"request": request}
+            data=request.data,
+            context={"request": request},
         )
         serializer.is_valid(raise_exception=True)
         day_story = serializer.create()
@@ -126,14 +131,20 @@ class DayStoryDetailView(APIView):
 
 
 class StoryVideoDetailView(APIView):
-    serializer_class = RequestPostDayStorySerializer
     authentication_classes = [ApiKeyAuthentication]
 
     @extend_schema(
         operation_id="get_video_story",
         summary="Получить видео",
         description="Получить видео",
-        tags=["Story Day"],
+        tags=["Video"],
+        request=None,
+        responses={
+            200: OpenApiResponse(
+                response=OpenApiTypes.BINARY,
+                description="Видео",
+            )
+        },
     )
     def get(self, request: Request, id: str):
         video: Video = Video.objects.filter(id=id, user=request.user).first()
@@ -146,3 +157,34 @@ class StoryVideoDetailView(APIView):
             )
         else:
             return HttpResponseNotFound()
+
+
+class MonthStoryView(APIView):
+    authentication_classes = [ApiKeyAuthentication]
+
+    @extend_schema(
+        operation_id="post_month_story",
+        summary="Сгенерировать видео за месяц",
+        description="Сгенерировать видео за месяц",
+        tags=["Story Month"],
+        request=RequestPostMonthStorySerializer,
+        responses={
+            200: OpenApiResponse(
+                response=OpenApiTypes.BINARY,
+                description="Видео",
+            )
+        },
+    )
+    def post(self, request: Request) -> Response:
+        serializer = RequestPostMonthStorySerializer(
+            data=request.data,
+            context={"request": request},
+        )
+        serializer.is_valid(raise_exception=True)
+        month_story: MonthStory = serializer.create()
+        return FileResponse(
+            open(f"{month_story.video.path}", "rb"),
+            filename=month_story.video.path,
+            content_type=month_story.video.content_type,
+            as_attachment=True,
+        )

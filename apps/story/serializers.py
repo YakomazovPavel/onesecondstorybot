@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from apps.story.models import DayStory, Video
+from apps.story.models import DayStory, MonthStory, Video
 from apps.users.models import User
 from project import settings
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -99,3 +99,85 @@ class DayStorySerializer(serializers.ModelSerializer):
             "day",
             "video_id",
         ]
+
+
+class RequestPostMonthStorySerializer(serializers.Serializer):
+    year = serializers.IntegerField(
+        required=True,
+        allow_null=False,
+    )
+    month = serializers.IntegerField(
+        required=True,
+        allow_null=False,
+    )
+
+    def create(self) -> DayStory:
+
+        user: User = self.context.get("request").user
+
+        video_ids = (
+            DayStory.objects.filter(
+                year=self.validated_data.get("year"),
+                month=self.validated_data.get("month"),
+                user=user,
+            )
+            .order_by("day")
+            .values_list("video_id", flat=True)
+        )
+
+        videos_paths = Video.objects.filter(id__in=video_ids).values_list(
+            "path", flat=True
+        )
+
+        if not videos_paths:
+            raise serializers.ValidationError("Отсутствуют видео за этот месяц")
+
+        # Создать временный файл txt
+        new_uuid = uuid.uuid4()
+
+        text = "\n".join([f"file '{path}'" for path in videos_paths])
+
+        print(f"text\n{text}")
+
+        temp_path_to_txt = f"{settings.MEDIA_ROOT}/{new_uuid}.concat.txt"
+        path_output = f"{settings.MEDIA_ROOT}/{new_uuid}.concat.mp4"
+
+        with open(temp_path_to_txt, "wb") as f:
+            f.write(text.encode("utf-8"))
+            # f.close()
+
+        try:
+            cmd = (
+                f"ffmpeg -f concat -safe 0 -i {temp_path_to_txt} -c copy {path_output}"
+            )
+            print(f"!cmd\n{cmd}")
+            exit_code = os.system(cmd)
+            print("Exit Code:", exit_code)
+            if exit_code != 0:
+                raise RuntimeError(f"Не удалось склеить видео {exit_code}")
+        except Exception as e:
+            print("FFmpeg Concat Error:", e)
+            raise serializers.ValidationError("Не удалось склеить видео")
+        finally:
+            os.system(f"rm {temp_path_to_txt}")
+
+        video: Video = Video.objects.create(
+            id=new_uuid,
+            user=user,
+            path=path_output,
+            content_type="video/mp4",
+        )
+
+        # Удалить предыдущую историю за этот месяц
+        MonthStory.objects.filter(
+            month=self.validated_data.get("month"),
+            year=self.validated_data.get("year"),
+            user=user,
+        ).delete()
+
+        return MonthStory.objects.create(
+            month=self.validated_data.get("month"),
+            year=self.validated_data.get("year"),
+            video=video,
+            user=user,
+        )
