@@ -351,3 +351,32 @@ class YearStoryDetailView(APIView):
         year_story.video.delete()
         year_story.delete()
         return Response(None, status=status.HTTP_204_NO_CONTENT)
+
+
+class DataView(APIView):
+    @extend_schema(
+        operation_id="get_data",
+        summary="Получить данные за год",
+        description="Получить данные за год",
+        tags=["Data"],
+        parameters=[
+            OpenApiParameter(
+                "year",
+                OpenApiTypes.INT,
+                OpenApiParameter.QUERY,
+                description="Год",
+                required=True,
+            )
+        ],
+        request=None,
+        responses={
+            200: OpenApiResponse(
+                response=YearStorySerializer,
+            )
+        },
+    )
+    def get(self, request: Request) -> Response:
+        return Response(
+            None,
+            status=status.HTTP_200_OK,
+        )
