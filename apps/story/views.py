@@ -19,6 +19,7 @@ from apps.story.serializers import (
     RequestPostMonthStorySerializer,
 )
 from project.auth import ApiKeyAuthentication
+from rest_framework.exceptions import NotFound
 
 
 class DayStoryView(APIView):
@@ -182,6 +183,54 @@ class MonthStoryView(APIView):
         )
         serializer.is_valid(raise_exception=True)
         month_story: MonthStory = serializer.create()
+        return FileResponse(
+            open(f"{month_story.video.path}", "rb"),
+            filename=month_story.video.path,
+            content_type=month_story.video.content_type,
+            as_attachment=True,
+        )
+
+    @extend_schema(
+        operation_id="get_month_story",
+        summary="Получить существующее видео за месяц",
+        description="Получить существующее видео за месяц",
+        tags=["Story Month"],
+        parameters=[
+            OpenApiParameter(
+                name="year",
+                description="Год",
+                type=int,
+                required=True,
+            ),
+            OpenApiParameter(
+                name="month",
+                description="Месяц",
+                type=int,
+                required=True,
+            ),
+        ],
+        request=RequestPostMonthStorySerializer,
+        responses={
+            200: OpenApiResponse(
+                response=OpenApiTypes.BINARY,
+                description="Видео",
+            )
+        },
+    )
+    def get(self, request: Request) -> Response:
+        serializer = RequestPostMonthStorySerializer(
+            data=request.query_params,
+            context={"request": request},
+        )
+        serializer.is_valid(raise_exception=True)
+        month_story = MonthStory.objects.filter(
+            year=serializer.validated_data.get("year"),
+            month=serializer.validated_data.get("month"),
+        ).first()
+
+        if not month_story:
+            raise NotFound
+
         return FileResponse(
             open(f"{month_story.video.path}", "rb"),
             filename=month_story.video.path,
