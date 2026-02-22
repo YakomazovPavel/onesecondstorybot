@@ -12,11 +12,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.story.models import DayStory, Video, MonthStory
+from apps.story.models import DayStory, Video, MonthStory, YearStory
 from apps.story.serializers import (
     DayStorySerializer,
+    MonthStorySerializer,
     RequestPostDayStorySerializer,
     RequestPostMonthStorySerializer,
+    RequestPostYearStorySerializer,
+    YearStorySerializer,
 )
 from project.auth import ApiKeyAuthentication
 from rest_framework.exceptions import NotFound
@@ -135,7 +138,7 @@ class StoryVideoDetailView(APIView):
     authentication_classes = [ApiKeyAuthentication]
 
     @extend_schema(
-        operation_id="get_video_story",
+        operation_id="get_video",
         summary="Получить видео",
         description="Получить видео",
         tags=["Video"],
@@ -170,9 +173,8 @@ class MonthStoryView(APIView):
         tags=["Story Month"],
         request=RequestPostMonthStorySerializer,
         responses={
-            200: OpenApiResponse(
-                response=OpenApiTypes.BINARY,
-                description="Видео",
+            201: OpenApiResponse(
+                response=MonthStorySerializer,
             )
         },
     )
@@ -183,33 +185,41 @@ class MonthStoryView(APIView):
         )
         serializer.is_valid(raise_exception=True)
         month_story: MonthStory = serializer.create()
-        return FileResponse(
-            open(f"{month_story.video.path}", "rb"),
-            filename=month_story.video.path,
-            content_type=month_story.video.content_type,
-            as_attachment=True,
+
+        return Response(
+            MonthStorySerializer(month_story).data,
+            status=status.HTTP_201_CREATED,
         )
+
+
+class MonthStoryDetailView(APIView):
+    authentication_classes = [ApiKeyAuthentication]
+
+    @property
+    def month_story(self) -> MonthStory:
+        month_story = MonthStory.objects.filter(
+            id=self.kwargs.get("id"),
+            user=self.request.user,
+        ).first()
+        if not month_story:
+            raise NotFound
+        return month_story
 
     @extend_schema(
         operation_id="get_month_story",
-        summary="Получить существующее видео за месяц",
-        description="Получить существующее видео за месяц",
+        summary="Получить историю за месяц",
+        description="Получить историю за месяц",
         tags=["Story Month"],
         parameters=[
             OpenApiParameter(
-                name="year",
-                description="Год",
-                type=int,
+                "id",
+                OpenApiTypes.UUID,
+                OpenApiParameter.PATH,
+                description="ID истории месяца",
                 required=True,
-            ),
-            OpenApiParameter(
-                name="month",
-                description="Месяц",
-                type=int,
-                required=True,
-            ),
+            )
         ],
-        request=RequestPostMonthStorySerializer,
+        request=None,
         responses={
             200: OpenApiResponse(
                 response=OpenApiTypes.BINARY,
@@ -217,23 +227,127 @@ class MonthStoryView(APIView):
             )
         },
     )
-    def get(self, request: Request) -> Response:
-        serializer = RequestPostMonthStorySerializer(
-            data=request.query_params,
+    def get(self, request: Request, id: str) -> Response:
+
+        return Response(
+            MonthStorySerializer(self.month_story).data,
+            status=status.HTTP_200_OK,
+        )
+
+    @extend_schema(
+        operation_id="delete_month_story",
+        summary="Удалить историю за месяц",
+        description="Удалить историю за месяц",
+        tags=["Story Month"],
+        parameters=[
+            OpenApiParameter(
+                "id",
+                OpenApiTypes.UUID,
+                OpenApiParameter.PATH,
+                description="ID истории месяца",
+                required=True,
+            )
+        ],
+        request=None,
+        responses={204: None},
+    )
+    def delete(self, request: Request, id) -> Response:
+        month_story = self.month_story
+        os.system(f"rm {month_story.video.path}")
+        month_story.video.delete()
+        month_story.delete()
+        return Response(None, status=status.HTTP_204_NO_CONTENT)
+
+
+class YearStoryView(APIView):
+    authentication_classes = [ApiKeyAuthentication]
+
+    @extend_schema(
+        operation_id="post_year_story",
+        summary="Сгенерировать историю за год",
+        description="Сгенерировать историю за год",
+        tags=["Story Year"],
+        request=RequestPostYearStorySerializer,
+        responses={
+            201: OpenApiResponse(
+                response=YearStorySerializer,
+            )
+        },
+    )
+    def post(self, request: Request) -> Response:
+        serializer = RequestPostYearStorySerializer(
+            data=request.data,
             context={"request": request},
         )
         serializer.is_valid(raise_exception=True)
-        month_story = MonthStory.objects.filter(
-            year=serializer.validated_data.get("year"),
-            month=serializer.validated_data.get("month"),
-        ).first()
+        year_story: YearStory = serializer.create()
 
-        if not month_story:
-            raise NotFound
-
-        return FileResponse(
-            open(f"{month_story.video.path}", "rb"),
-            filename=month_story.video.path,
-            content_type=month_story.video.content_type,
-            as_attachment=True,
+        return Response(
+            YearStorySerializer(year_story).data,
+            status=status.HTTP_201_CREATED,
         )
+
+
+class YearStoryDetailView(APIView):
+    authentication_classes = [ApiKeyAuthentication]
+
+    @property
+    def year_story(self) -> YearStory:
+        year_story = YearStory.objects.filter(
+            id=self.kwargs.get("id"),
+            user=self.request.user,
+        ).first()
+        if not year_story:
+            raise NotFound
+        return year_story
+
+    @extend_schema(
+        operation_id="get_year_story",
+        summary="Получить историю за год",
+        description="Получить историю за год",
+        tags=["Story Year"],
+        parameters=[
+            OpenApiParameter(
+                "id",
+                OpenApiTypes.UUID,
+                OpenApiParameter.PATH,
+                description="ID истории года",
+                required=True,
+            )
+        ],
+        request=None,
+        responses={
+            200: OpenApiResponse(
+                response=YearStorySerializer,
+            )
+        },
+    )
+    def get(self, request: Request, id: str) -> Response:
+        return Response(
+            MonthStorySerializer(self.year_story).data,
+            status=status.HTTP_200_OK,
+        )
+
+    @extend_schema(
+        operation_id="delete_year_story",
+        summary="Удалить историю за год",
+        description="Удалить историю за год",
+        tags=["Story Year"],
+        parameters=[
+            OpenApiParameter(
+                "id",
+                OpenApiTypes.UUID,
+                OpenApiParameter.PATH,
+                description="ID истории года",
+                required=True,
+            )
+        ],
+        request=None,
+        responses={204: None},
+    )
+    def delete(self, request: Request, id) -> Response:
+        year_story = self.year_story
+        os.system(f"rm {year_story.video.path}")
+        year_story.video.delete()
+        year_story.delete()
+        return Response(None, status=status.HTTP_204_NO_CONTENT)

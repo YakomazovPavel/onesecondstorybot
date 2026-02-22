@@ -22,6 +22,7 @@ from django.urls import include, path
 # from apps.utility.swagger_views import CustomSwaggerView
 from drf_spectacular.views import SpectacularSwaggerView
 from drf_spectacular.views import SpectacularAPIView
+from apps.story.views import StoryVideoDetailView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -37,6 +38,7 @@ urlpatterns = [
                 path("schema/", SpectacularAPIView.as_view(), name="schema"),
                 path("users/", include("apps.users.urls")),
                 path("story/", include("apps.story.urls")),
+                path("video/<str:id>/", StoryVideoDetailView.as_view()),
             ]
         ),
     ),
